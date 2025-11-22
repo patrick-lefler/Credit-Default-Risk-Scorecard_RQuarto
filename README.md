@@ -192,21 +192,13 @@ Recommended reading:
 - "Credit Risk Analytics" by Baesens et al.
 - Tidymodels documentation: https://www.tidymodels.org/
 
-## 🤝 Contributing
-
-This is a portfolio/demonstration project. Feel free to:
-- Fork and adapt for your own use case
-- Extend with additional models (XGBoost, neural networks)
-- Add time-series analysis for vintage performance
-- Integrate with Shiny for interactive dashboards
-
 ## 📄 License
 
 This project is provided as-is for educational and portfolio purposes.
 
 ## 👤 Author
 
-Created to demonstrate risk analytics and data visualization capabilities for fintech applications.
+Created by Patrick Lefler to demonstrate risk analytics and data visualization capabilities for fintech applications.
 
 ## 🔍 Keywords
 
