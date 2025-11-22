@@ -1,0 +1,33 @@
+# R Package Requirements for Credit Risk Scorecard Project
+# Install all packages with: install.packages(readLines("requirements.txt"))
+
+# Core tidyverse ecosystem
+tidyverse
+
+# Tidymodels ecosystem for machine learning
+tidymodels
+themis        # SMOTE and other sampling methods
+vip           # Variable importance plots
+pdp           # Partial dependence plots
+
+# Visualization
+plotly        # Interactive visualizations
+patchwork     # Combining plots
+ggridges      # Ridge density plots
+scales        # Scale functions for plots
+
+# Tables and reporting
+knitr         # Dynamic report generation
+kableExtra    # Enhanced table formatting
+gt            # Modern table creation (optional alternative)
+
+# Quarto
+quarto        # Document rendering
+
+# Additional modeling engines (optional, installed with tidymodels)
+# These are dependencies but listed for clarity:
+# - glmnet (for regularized regression)
+# - ranger (for random forests)
+# - recipes (for preprocessing)
+# - tune (for hyperparameter tuning)
+# - yardstick (for model metrics)
