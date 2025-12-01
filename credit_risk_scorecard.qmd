@@ -1,8 +1,8 @@
 ---
 title: "Credit Default Risk Scorecard"
 subtitle: "Predictive Modeling and Risk Assessment Framework"
-author: "Risk Analytics Team"
-date: today
+author: "Patrick Lefler"
+date: "11/25/2025"
 format:
   html:
     theme: cosmo
