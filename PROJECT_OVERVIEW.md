@@ -1,7 +1,5 @@
 # Credit Risk Scorecard Project - Overview
 
-## 🎯 What I've Created For You
-
 A production-ready credit risk scorecard project using R, Quarto, and tidymodels that showcases:
 
 1. **Advanced Analytics**: Machine learning models (logistic regression, random forest) with hyperparameter tuning
