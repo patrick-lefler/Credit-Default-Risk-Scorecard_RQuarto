@@ -1,17 +1,18 @@
 ---
 title: "Credit Default Risk Scorecard"
-subtitle: "Predictive Modeling and Risk Assessment Framework"
+subtitle: "Predictive Risk Modeling Framework Using the R Tidymodel Package"
 author: "Patrick Lefler"
-date: "11/25/2025"
+date: 11-25-2025
 format:
   html:
-    theme: cosmo
+    theme: flatly
+    css: style.css
     toc: true
     toc-depth: 3
     toc-location: left
     code-fold: true
     code-tools: true
-    code-summary: "Show code"
+    code-summary: "Display Code"
     fig-width: 10
     fig-height: 6
     embed-resources: true
@@ -35,9 +36,6 @@ library(scales)
 library(patchwork)
 library(ggridges)
 
-# Set theme
-theme_set(theme_minimal(base_size = 12))
-
 # Color palette
 risk_colors <- c(
   "Low" = "#2ecc71",
@@ -46,7 +44,33 @@ risk_colors <- c(
   "No" = "#3498db",
   "Yes" = "#e74c3c"
 )
+
+# ggplot custom theme
+themeMain <- ggplot2::theme(
+  plot.title = element_text(size = 15, color = 'gray21'),
+  plot.subtitle.title = element_text(size = 12.5, color = 'gray21'),
+  plot.caption = element_text(size = 10, color = 'gray21'),
+  axis.title.x = element_text(size = 13, color ='gray21'),
+  axis.title.y = element_text(size = 13, color ='gray21'),
+  axis.text.x = element_text(size = 12, color ='gray21'),
+  axis.text.y = element_text(size = 12, color ='gray21'),
+)
+
+themePlotly <- ggplot2::theme(
+  plot.title = element_text(size = 13, color = 'gray21'),
+  plot.subtitle.title = element_text(size = 11.5, color = 'gray21'),
+  plot.caption = element_text(size = 9, color = 'gray21'),
+  axis.title.x = element_text(size = 9, color ='gray21'),
+  axis.title.y = element_text(size = 9, color ='gray21'),
+  axis.text.x = element_text(size = 9, color ='gray21'),
+  axis.text.y = element_text(size = 9, color ='gray21'),
+)
+
 ```
+
+::: {.callout-note}
+Tidymodels is a comprehensive ecosystem of R packages designed to streamline the machine learning and statistical modeling workflow using "tidy" data principles. By providing a unified and consistent syntax, it allows users to easily switch between different underlying computational engines—such as random forests or linear regression—without needing to learn unique code for each algorithm. The framework covers the entire modeling pipeline, offering specialized tools for essential tasks including data splitting, preprocessing, model tuning, and performance evaluation.
+:::
 
 # Executive Summary
 
@@ -57,39 +81,36 @@ This analysis develops a comprehensive credit default risk scorecard using machi
 - **Portfolio Analytics**: Monte Carlo simulation for expected losses
 - **Decision Tools**: Interactive visualizations for risk assessment
 
----
-
 # 1. Data Overview
 
-## 1.1 Load and Prepare Data
-
 ```{r load-data}
-# Generate data if not exists
-if (!file.exists("data/train_data.csv")) {
-  source("R/generate_credit_data.R")
-}
+#| echo: false
 
-# Load datasets
-train_data <- read_csv("data/train_data.csv", show_col_types = FALSE)
-test_data <- read_csv("data/test_data.csv", show_col_types = FALSE)
-full_data <- read_csv("data/credit_data.csv", show_col_types = FALSE)
+# Load datasets from data folder; convert default to factor
+train_data <- read_csv("data/train_data.csv", show_col_types = FALSE) %>%
+  mutate(default = factor(default, levels = c("No", "Yes")))
 
-# Display structure
-glimpse(train_data)
+test_data <- read_csv("data/test_data.csv", show_col_types = FALSE) %>%
+  mutate(default = factor(default, levels = c("No", "Yes")))
+
+full_data <- read_csv("data/credit_data.csv", show_col_types = FALSE) %>%
+  mutate(default = factor(default, levels = c("No", "Yes")))
+
 ```
 
-## 1.2 Data Quality Assessment
+## 1.1 Data Quality Assessment
 
 ```{r data-quality}
+#| echo: true
 # Summary statistics
 train_summary <- train_data %>%
   summarise(
-    `Total Observations` = n(),
+    `Total Observations` = comma(n()),
     `Default Rate` = percent(mean(default == "Yes"), accuracy = 0.01),
     `Avg Loan Amount` = dollar(mean(loan_amount)),
     `Avg Income` = dollar(mean(income)),
     `Avg DTI` = percent(mean(debt_to_income), accuracy = 0.1),
-    `Missing Values` = sum(is.na(.))
+    `Missing Values` = as.character(sum(is.na(.)))
   ) %>%
   pivot_longer(everything(), names_to = "Metric", values_to = "Value")
 
@@ -99,10 +120,10 @@ kable(train_summary,
   kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
-## 1.3 Target Variable Distribution
+## 1.2 Target Variable Distribution
 
 ```{r target-distribution}
-#| fig-cap: "Distribution of default outcomes in training data"
+#| echo: false
 
 default_summary <- train_data %>%
   count(default) %>%
@@ -111,20 +132,22 @@ default_summary <- train_data %>%
     label = paste0(comma(n), "\n(", percent(percentage, accuracy = 0.1), ")")
   )
 
-p <- ggplot(default_summary, aes(x = default, y = n, fill = default)) +
+fig_1.2 <- ggplot(default_summary, aes(x = default, y = n, fill = default)) +
   geom_col(alpha = 0.8) +
-  geom_text(aes(label = label), vjust = -0.5, size = 5) +
+  geom_text(aes(label = label), vjust = -0.3, size = 4) +
   scale_fill_manual(values = risk_colors) +
   scale_y_continuous(labels = comma, expand = expansion(mult = c(0, 0.1))) +
   labs(
-    title = "Default Distribution in Training Set",
+    title = "Fig (1.2): Distribution of Default Outcomes in Training Data",
     x = "Default Status",
     y = "Number of Customers",
     fill = "Default"
   ) +
-  theme(legend.position = "none")
+  theme_gray() +
+  themeMain 
+  
+fig_1.2
 
-ggplotly(p, tooltip = c("x", "y"))
 ```
 
 ---
@@ -135,7 +158,6 @@ ggplotly(p, tooltip = c("x", "y"))
 
 ```{r feature-distributions}
 #| fig-height: 8
-#| fig-cap: "Distribution of key features by default status"
 
 # Select key numeric features
 key_features <- train_data %>%
@@ -152,23 +174,26 @@ key_features <- train_data %>%
 
 p <- ggplot(key_features, aes(x = value, y = feature, fill = default)) +
   geom_density_ridges(alpha = 0.7, scale = 1.5) +
-  scale_fill_manual(values = risk_colors) +
+  scale_fill_manual(values = risk_colors) + 
   facet_wrap(~feature, scales = "free", ncol = 2) +
   labs(
-    title = "Feature Distributions by Default Status",
+    title = "Fig (2.1): Feature Distributions by Default Status",
     x = "Value",
     y = "Feature",
     fill = "Default"
   ) +
-  theme(strip.text = element_text(face = "bold"))
+  theme(strip.text = element_text(face = "bold")) +
+  theme_gray() +
+  themeMain 
 
-print(p)
+p
+
 ```
 
 ## 2.2 Risk Factor Correlation Matrix
 
 ```{r correlation-matrix}
-#| fig-cap: "Correlation heatmap of numeric predictors"
+####| fig-cap: "Correlation heatmap of numeric predictors"
 
 # Compute correlation matrix
 cor_data <- train_data %>%
@@ -181,34 +206,37 @@ cor_long <- cor_data %>%
   rownames_to_column("var1") %>%
   pivot_longer(-var1, names_to = "var2", values_to = "correlation")
 
-p <- ggplot(cor_long, aes(x = var1, y = var2, fill = correlation)) +
+cor_long[cor_long == 1] <- NA
+
+plot_2.2 <- ggplot(cor_long, aes(x = var1, y = var2, fill = correlation)) +
   geom_tile() +
   scale_fill_gradient2(
     low = "#3498db",
-    mid = "white",
+    mid = "#DCDCDC",
     high = "#e74c3c",
     midpoint = 0,
-    limits = c(-1, 1)
+    limits = c(-.04, .04)
   ) +
   labs(
-    title = "Feature Correlation Matrix",
+    title = "Fig (2.2): Feature Correlation Matrix",
     x = NULL,
     y = NULL,
     fill = "Correlation"
-  ) +
+  )  +
+  theme_gray() +
+  themePlotly +
   theme(
-    axis.text.x = element_text(angle = 45, hjust = 1),
-    panel.grid = element_blank()
+  axis.text.x = element_text(angle = 45, hjust = 1),
+  panel.grid = element_blank()
   )
 
-ggplotly(p)
+ggplotly(plot_2.2)
 ```
 
 ## 2.3 Default Rates by Categorical Features
 
 ```{r categorical-analysis}
 #| fig-height: 6
-#| fig-cap: "Default rates across categorical variables"
 
 categorical_default <- train_data %>%
   select(default, loan_purpose, housing_status) %>%
@@ -224,18 +252,20 @@ categorical_default <- train_data %>%
 
 p <- ggplot(categorical_default, aes(x = reorder(value, percentage), y = percentage, fill = category)) +
   geom_col(alpha = 0.8, show.legend = FALSE) +
-  geom_text(aes(label = percent(percentage, accuracy = 0.1)), hjust = -0.1, size = 3) +
+  geom_text(aes(label = percent(percentage, accuracy = 0.1)), hjust = -0.1, size = 4) +
   scale_y_continuous(labels = percent, limits = c(0, max(categorical_default$percentage) * 1.15)) +
   coord_flip() +
   facet_wrap(~category, scales = "free_y", ncol = 1) +
   labs(
-    title = "Default Rates by Categorical Variables",
+    title = "Fig (2.3): Default Rates by Categorical Variables",
     x = NULL,
     y = "Default Rate"
   ) +
-  theme(strip.text = element_text(face = "bold"))
+  theme(strip.text = element_text(face = "bold")) +
+  theme_gray() +
+  themeMain 
 
-print(p)
+p
 ```
 
 ---
@@ -249,13 +279,12 @@ print(p)
 credit_recipe <- recipe(default ~ ., data = train_data) %>%
   # Remove ID variable
   step_rm(customer_id) %>%
-  # Create interaction terms
-  step_interact(terms = ~ debt_to_income:income) %>%
-  step_interact(terms = ~ credit_utilization:num_credit_lines) %>%
-  # Normalize numeric predictors
-  step_normalize(all_numeric_predictors()) %>%
+  # Remove zero-variance predictors
+  step_zv(all_predictors()) %>%
   # One-hot encode categorical variables
   step_dummy(all_nominal_predictors()) %>%
+  # Normalize numeric predictors
+  step_normalize(all_numeric_predictors()) %>%
   # Handle class imbalance with SMOTE
   step_smote(default, over_ratio = 0.8)
 
@@ -293,9 +322,6 @@ rf_wf <- workflow() %>%
   add_recipe(credit_recipe) %>%
   add_model(rf_spec)
 
-cat("Model specifications created:\n")
-cat("- Logistic Regression (LASSO)\n")
-cat("- Random Forest (500 trees)\n")
 ```
 
 ## 3.3 Cross-Validation Setup
@@ -381,23 +407,23 @@ kable(all_results %>% select(model, mean, std_err),
 ```
 
 ```{r tuning-visualization}
-#| fig-cap: "Hyperparameter tuning results"
+####| fig-cap: "Hyperparameter tuning results"
 
-p <- bind_rows(logistic_results, rf_results) %>%
+plot_3.5 <- bind_rows(logistic_results, rf_results) %>%
   filter(.metric == "roc_auc") %>%
   ggplot(aes(x = model, y = mean, fill = model)) +
   geom_boxplot(alpha = 0.7) +
   geom_jitter(width = 0.2, alpha = 0.3) +
   scale_fill_brewer(palette = "Set2") +
   labs(
-    title = "Model Performance Comparison (Cross-Validation)",
+    title = "Fig (3.5): Model Performance Comparison (Cross-Validation)",
     x = "Model",
     y = "ROC AUC",
     fill = "Model"
   ) +
   theme(legend.position = "none")
 
-ggplotly(p)
+ggplotly(plot_3.5)
 ```
 
 ---
@@ -422,21 +448,35 @@ cat("Final models trained on full training set\n")
 
 ```{r test-performance}
 # Generate predictions
-logistic_pred <- augment(final_logistic_fit, test_data)
-rf_pred <- augment(final_rf_fit, test_data)
+logistic_pred <- augment(final_logistic_fit, test_data) %>%
+  mutate(default = factor(default, levels = c("No", "Yes")))
 
-# Calculate metrics
-logistic_metrics <- logistic_pred %>%
-  metrics(truth = default, estimate = .pred_class, .pred_Yes)
+rf_pred <- augment(final_rf_fit, test_data) %>%
+  mutate(default = factor(default, levels = c("No", "Yes")))
 
-rf_metrics <- rf_pred %>%
-  metrics(truth = default, estimate = .pred_class, .pred_Yes)
+# Calculate metrics using explicit classification metric set
+logistic_metrics <- bind_rows(
+  logistic_pred %>% accuracy(truth = default, estimate = .pred_class),
+  logistic_pred %>% roc_auc(truth = default, .pred_Yes),
+  logistic_pred %>% sensitivity(truth = default, estimate = .pred_class),
+  logistic_pred %>% specificity(truth = default, estimate = .pred_class),
+  logistic_pred %>% precision(truth = default, estimate = .pred_class),
+  logistic_pred %>% recall(truth = default, estimate = .pred_class)
+) %>%
+  mutate(model = "Logistic Regression")
+
+rf_metrics <- bind_rows(
+  rf_pred %>% accuracy(truth = default, estimate = .pred_class),
+  rf_pred %>% roc_auc(truth = default, .pred_Yes),
+  rf_pred %>% sensitivity(truth = default, estimate = .pred_class),
+  rf_pred %>% specificity(truth = default, estimate = .pred_class),
+  rf_pred %>% precision(truth = default, estimate = .pred_class),
+  rf_pred %>% recall(truth = default, estimate = .pred_class)
+) %>%
+  mutate(model = "Random Forest")
 
 # Combine results
-test_results <- bind_rows(
-  logistic_metrics %>% mutate(model = "Logistic Regression"),
-  rf_metrics %>% mutate(model = "Random Forest")
-) %>%
+test_results <- bind_rows(logistic_metrics, rf_metrics) %>%
   select(model, .metric, .estimate) %>%
   pivot_wider(names_from = .metric, values_from = .estimate)
 
@@ -449,7 +489,6 @@ kable(test_results,
 ## 4.3 ROC Curves
 
 ```{r roc-curves}
-#| fig-cap: "ROC curves comparing model performance on test set"
 
 # Calculate ROC curves
 logistic_roc <- logistic_pred %>%
@@ -471,7 +510,7 @@ rf_auc <- rf_pred %>%
   roc_auc(truth = default, .pred_Yes) %>%
   pull(.estimate)
 
-p <- ggplot(roc_data, aes(x = 1 - specificity, y = sensitivity, color = model)) +
+plot_4.3 <- ggplot(roc_data, aes(x = 1 - specificity, y = sensitivity, color = model)) +
   geom_line(size = 1.2) +
   geom_abline(linetype = "dashed", color = "gray50") +
   annotate("text", x = 0.7, y = 0.3, 
@@ -482,20 +521,19 @@ p <- ggplot(roc_data, aes(x = 1 - specificity, y = sensitivity, color = model)) 
            color = "#00BFC4", size = 4) +
   scale_color_brewer(palette = "Set1") +
   labs(
-    title = "ROC Curve Comparison",
+    title = "Fig (4.3): ROC Curve Comparison",
     x = "False Positive Rate (1 - Specificity)",
     y = "True Positive Rate (Sensitivity)",
     color = "Model"
   ) +
   coord_equal()
 
-ggplotly(p)
+ggplotly(plot_4.3)
 ```
 
 ## 4.4 Calibration Plot
 
 ```{r calibration-plot}
-#| fig-cap: "Model calibration comparing predicted vs actual default rates"
 
 # Create calibration data
 calibration_data <- bind_rows(
@@ -517,15 +555,14 @@ calibration_data <- bind_rows(
     .groups = "drop"
   )
 
-p <- ggplot(calibration_data, aes(x = predicted, y = observed, color = model)) +
+plot_4.4 <- ggplot(calibration_data, aes(x = predicted, y = observed, color = model)) +
   geom_point(aes(size = n), alpha = 0.6) +
   geom_line() +
   geom_abline(linetype = "dashed", color = "gray50") +
   scale_color_brewer(palette = "Set1") +
   scale_size_continuous(range = c(2, 10)) +
   labs(
-    title = "Calibration Plot",
-    subtitle = "Perfect calibration follows the diagonal line",
+    title = "Fig (4.4): Calibration Plot",
     x = "Predicted Default Probability",
     y = "Observed Default Rate",
     color = "Model",
@@ -533,14 +570,13 @@ p <- ggplot(calibration_data, aes(x = predicted, y = observed, color = model)) +
   ) +
   coord_equal(xlim = c(0, 1), ylim = c(0, 1))
 
-ggplotly(p)
+ggplotly(plot_4.4)
 ```
 
 ## 4.5 Confusion Matrices
 
 ```{r confusion-matrices}
 #| fig-height: 5
-#| fig-cap: "Confusion matrices for both models"
 
 # Logistic confusion matrix
 logistic_cm <- logistic_pred %>%
@@ -548,10 +584,10 @@ logistic_cm <- logistic_pred %>%
   autoplot(type = "heatmap") +
   scale_fill_gradient(low = "#ecf0f1", high = "#3498db") +
   labs(
-    title = "Logistic Regression",
+    title = "Fig (4.5): Confusion Matrix for Logistic Regression",
     x = "Predicted",
     y = "Actual"
-  )
+  ) 
 
 # Random forest confusion matrix
 rf_cm <- rf_pred %>%
@@ -559,7 +595,7 @@ rf_cm <- rf_pred %>%
   autoplot(type = "heatmap") +
   scale_fill_gradient(low = "#ecf0f1", high = "#e74c3c") +
   labs(
-    title = "Random Forest",
+    title = "Confusion Matrix for Random Forest",
     x = "Predicted",
     y = "Actual"
   )
@@ -575,7 +611,6 @@ logistic_cm + rf_cm
 
 ```{r variable-importance}
 #| fig-height: 8
-#| fig-cap: "Top 15 most important features from Random Forest model"
 
 # Extract and plot variable importance
 rf_importance <- final_rf_fit %>%
@@ -590,7 +625,7 @@ print(rf_importance)
 
 ```{r pdp-plots}
 #| fig-height: 10
-#| fig-cap: "Partial dependence plots showing relationship between key features and default probability"
+###| fig-cap: "Partial dependence plots showing relationship between key features and default probability"
 #| message: false
 
 library(pdp)
@@ -616,19 +651,21 @@ pdp_list <- map(key_vars, ~{
 
 pdp_data <- bind_rows(pdp_list)
 
-p <- ggplot(pdp_data, aes(x = get(names(pdp_data)[1]), y = yhat)) +
+plot_5.2 <- ggplot(pdp_data, aes(x = get(names(pdp_data)[1]), y = yhat)) +
   geom_line(color = "#e74c3c", size = 1.2) +
   geom_smooth(se = TRUE, alpha = 0.2, color = "#3498db") +
   facet_wrap(~variable, scales = "free_x", ncol = 2) +
   labs(
-    title = "Partial Dependence Plots",
+    title = "Fig (5.2): Partial Dependence Plots",
     subtitle = "Impact of individual features on default probability",
     x = "Feature Value",
     y = "Predicted Default Probability"
   ) +
-  theme(strip.text = element_text(face = "bold"))
+  theme(strip.text = element_text(face = "bold")) + 
+theme_gray() +
+  themeMain 
 
-print(p)
+plot_5.2
 ```
 
 ---
@@ -690,66 +727,66 @@ kable(risk_summary %>%
 ## 6.2 Risk Score Distribution
 
 ```{r score-distribution}
-#| fig-cap: "Distribution of risk scores across the portfolio"
 
-p <- ggplot(scored_data, aes(x = risk_score, fill = default)) +
+plot_6.2 <- ggplot(scored_data, aes(x = risk_score, fill = default)) +
   geom_histogram(bins = 50, alpha = 0.7, position = "identity") +
   geom_vline(xintercept = c(200, 400, 600, 800), 
              linetype = "dashed", color = "gray30") +
   scale_fill_manual(values = risk_colors) +
   scale_x_continuous(breaks = seq(0, 1000, 100)) +
   labs(
-    title = "Risk Score Distribution",
-    subtitle = "Vertical lines indicate risk tier boundaries",
+    title = "Fig (6.2): Distribution of Risk Scores across Portfolio",
     x = "Risk Score (0-1000)",
     y = "Count",
     fill = "Default"
   )
 
-ggplotly(p)
+plot_6.2
 ```
 
 ## 6.3 Risk Tier Performance
 
 ```{r risk-tier-viz}
 #| fig-height: 8
-#| fig-cap: "Risk tier analysis showing default rates and portfolio composition"
+####| fig-cap: "Risk tier analysis showing default rates and portfolio composition"
 
 # Default rates by tier
-p1 <- ggplot(risk_summary, aes(x = risk_tier, y = default_rate, fill = risk_tier)) +
+plot_6.3_1 <- ggplot(risk_summary, aes(x = risk_tier, y = default_rate, fill = risk_tier)) +
   geom_col(alpha = 0.8) +
   geom_text(aes(label = percent(default_rate, accuracy = 0.1)), 
             vjust = -0.5, size = 4) +
   scale_fill_brewer(palette = "RdYlGn", direction = -1) +
   scale_y_continuous(labels = percent, expand = expansion(mult = c(0, 0.1))) +
   labs(
-    title = "Default Rates by Risk Tier",
-    x = "Risk Tier",
+    title = "Fig (6.3a): Default Rates by Risk Tier",
+    x = NULL,
     y = "Default Rate"
   ) +
+  themeMain +
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1),
     legend.position = "none"
   )
 
 # Portfolio composition
-p2 <- ggplot(risk_summary, aes(x = risk_tier, y = portfolio_pct, fill = risk_tier)) +
+plot_6.3_2 <- ggplot(risk_summary, aes(x = risk_tier, y = portfolio_pct, fill = risk_tier)) +
   geom_col(alpha = 0.8) +
   geom_text(aes(label = percent(portfolio_pct, accuracy = 0.1)), 
             vjust = -0.5, size = 4) +
   scale_fill_brewer(palette = "RdYlGn", direction = -1) +
   scale_y_continuous(labels = percent, expand = expansion(mult = c(0, 0.1))) +
   labs(
-    title = "Portfolio Distribution",
-    x = "Risk Tier",
+    title = "Fig (6.3b): Portfolio Distribution",
+    x = NULL,
     y = "% of Portfolio"
   ) +
+  themeMain +
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1),
     legend.position = "none"
   )
 
-p1 / p2
+plot_6.3_1 / plot_6.3_2
 ```
 
 ---
@@ -818,7 +855,6 @@ kable(risk_tier_el,
 ## 7.3 Expected Loss Visualization
 
 ```{r el-visualization}
-#| fig-cap: "Expected loss distribution across risk tiers"
 
 p <- ggplot(risk_tier_el, aes(x = risk_tier, y = total_expected_loss, 
                                fill = risk_tier)) +
@@ -829,26 +865,28 @@ p <- ggplot(risk_tier_el, aes(x = risk_tier, y = total_expected_loss,
   scale_y_continuous(labels = dollar_format(scale = 1e-6, suffix = "M"),
                     expand = expansion(mult = c(0, 0.1))) +
   labs(
-    title = "Expected Loss by Risk Tier",
-    x = "Risk Tier",
+    title = "Fig (7.3): Expected Loss by Risk Tier",
+    x = NULL,
     y = "Expected Loss ($M)"
   ) +
   theme(
     axis.text.x = element_text(angle = 45, hjust = 1),
     legend.position = "none"
-  )
-
-ggplotly(p)
+  ) +
+  theme_gray() +
+  themeMain 
+  
+p
 ```
 
 ## 7.4 Monte Carlo Simulation
 
 ```{r monte-carlo}
 #| cache: true
-#| fig-cap: "Monte Carlo simulation of portfolio losses"
+## #| fig-cap: "Monte Carlo simulation of portfolio losses"
 
-set.seed(999)
-n_simulations <- 10000
+set.seed(714)
+n_simulations <- 50000
 
 # Run simulations
 simulate_portfolio_loss <- function(portfolio_data, lgd_data) {
@@ -870,17 +908,19 @@ sim_results <- map_dbl(1:n_simulations, ~{
 # Calculate VaR and ES
 var_95 <- quantile(sim_results, 0.95)
 var_99 <- quantile(sim_results, 0.99)
+var_999 <- quantile(sim_results, 0.999)
 expected_shortfall_95 <- mean(sim_results[sim_results >= var_95])
 expected_loss <- mean(sim_results)
 
 # Create simulation summary
 sim_summary <- tibble(
-  metric = c("Mean Loss", "Std Dev", "95% VaR", "99% VaR", "95% ES"),
+  metric = c("Mean Loss", "Std Dev", "95% Value at Risk", "99% Value at Risk", "99.9% Value at Risk", "95% Expected Shortfall"),
   value = c(
     expected_loss,
     sd(sim_results),
     var_95,
     var_99,
+    var_999,
     expected_shortfall_95
   )
 ) %>%
@@ -888,13 +928,13 @@ sim_summary <- tibble(
 
 kable(sim_summary %>% select(metric, value_formatted),
       col.names = c("Metric", "Value"),
-      caption = "Monte Carlo Simulation Results (10,000 iterations)") %>%
+      caption = "Monte Carlo Simulation Results (50,000 iterations)") %>%
   kable_styling(bootstrap_options = c("striped", "hover"))
 
 # Plot distribution
 sim_df <- tibble(loss = sim_results)
 
-p <- ggplot(sim_df, aes(x = loss)) +
+plot_7.4 <- ggplot(sim_df, aes(x = loss)) +
   geom_histogram(bins = 100, fill = "#3498db", alpha = 0.7) +
   geom_vline(xintercept = expected_loss, 
              color = "#2ecc71", linetype = "dashed", size = 1) +
@@ -910,13 +950,15 @@ p <- ggplot(sim_df, aes(x = loss)) +
            label = "99% VaR", vjust = 2, color = "#e74c3c") +
   scale_x_continuous(labels = dollar_format(scale = 1e-6, suffix = "M")) +
   labs(
-    title = "Simulated Portfolio Loss Distribution",
-    subtitle = "10,000 Monte Carlo simulations",
+    title = "Fig (7.4): Monte Carlo simulation of portfolio losses",
+    caption = "50,000 Monte Carlo simulations",
     x = "Total Portfolio Loss",
     y = "Frequency"
-  )
+  ) +
+  theme_gray() +
+  themeMain 
 
-print(p)
+plot_7.4
 ```
 
 ---
@@ -975,7 +1017,7 @@ kable(capital_requirements %>%
 ## 8.3 Portfolio Optimization Scenarios
 
 ```{r optimization}
-#| fig-cap: "Impact of portfolio composition changes on expected loss"
+###| fig-cap: "Impact of portfolio composition changes on expected loss"
 
 # Create scenarios
 scenarios <- tibble(
@@ -1010,7 +1052,7 @@ scenarios <- tibble(
     .groups = "drop"
   )
 
-p <- ggplot(scenarios, aes(x = reorder(scenario, -weighted_loss_rate), 
+plot_8.3 <- ggplot(scenarios, aes(x = reorder(scenario, -weighted_loss_rate), 
                            y = weighted_loss_rate, fill = scenario)) +
   geom_col(alpha = 0.8) +
   geom_text(aes(label = percent(weighted_loss_rate, accuracy = 0.01)), 
@@ -1018,13 +1060,15 @@ p <- ggplot(scenarios, aes(x = reorder(scenario, -weighted_loss_rate),
   scale_fill_brewer(palette = "Set2") +
   scale_y_continuous(labels = percent, expand = expansion(mult = c(0, 0.1))) +
   labs(
-    title = "Expected Loss Rate by Portfolio Strategy",
+    title = "Fig (8.3): Expected Loss Rate by Portfolio Strategy",
     x = "Scenario",
     y = "Portfolio Loss Rate"
   ) +
-  theme(legend.position = "none")
+  theme(legend.position = "none") +
+  theme_gray() +
+  themeMain 
 
-ggplotly(p)
+plot_8.3
 ```
 
 ---
@@ -1036,10 +1080,10 @@ ggplotly(p)
 1. **Model Performance**: The Random Forest model achieves `r round(rf_auc, 3)` AUC on the test set, demonstrating strong discriminatory power between default and non-default customers.
 
 2. **Risk Drivers**: Key predictors of default include:
-   - Debt-to-income ratio
-   - Credit utilization
-   - Number of delinquencies
-   - Payment-to-income ratio
+- Debt-to-income ratio
+- Credit utilization
+- Number of delinquencies
+- Payment-to-income ratio
 
 3. **Portfolio Risk**: Expected loss across the portfolio is **`r dollar(portfolio_metrics$total_expected_loss, scale = 1e-6, suffix = "M")`**, representing a **`r percent(portfolio_metrics$loss_rate, accuracy = 0.01)`** loss rate.
 
@@ -1080,5 +1124,6 @@ This scorecard can be operationalized through:
 ## Session Information
 
 ```{r session-info}
+#| echo: false
 sessionInfo()
 ```
