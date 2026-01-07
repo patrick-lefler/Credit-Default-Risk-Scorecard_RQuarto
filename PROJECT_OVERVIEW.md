@@ -1,6 +1,6 @@
 # Credit Risk Scorecard Project - Overview
 
-A production-ready credit risk scorecard project using R, Quarto, and tidymodels that showcases:
+A credit risk scorecard project using R, Quarto, and tidymodels that showcases:
 
 1. **Advanced Analytics**: Machine learning models (logistic regression, random forest) with hyperparameter tuning
 2. **Risk Management**: Five-tier risk classification, expected loss calculations, Monte Carlo simulations
