@@ -2,7 +2,7 @@
 
 A comprehensive predictive modeling project demonstrating advanced risk analytics and data visualization using R, Quarto, and tidymodels.
 
-## 🎯 Project Overview
+## Project Overview
 
 This project showcases:
 - **Machine Learning**: Logistic regression and random forest models with hyperparameter tuning
@@ -30,7 +30,7 @@ This project showcases:
 - Interactive risk dashboards
 - Monte Carlo simulation results
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -86,7 +86,7 @@ credit_risk_scorecard/
 └── outputs/                      # Generated reports (after rendering)
 ```
 
-## 📈 Dataset
+## Dataset
 
 **Synthetic credit application data** (5,000 observations):
 
@@ -101,7 +101,7 @@ credit_risk_scorecard/
 - Binary default indicator (Yes/No)
 - Default rate: ~15-20%
 
-## 🎓 Technical Highlights
+## Technical Highlights
 
 ### Machine Learning Techniques
 - **Regularization**: LASSO logistic regression with tuned penalty
@@ -121,7 +121,7 @@ credit_risk_scorecard/
 - Heatmaps for correlation and confusion matrices
 - Partial dependence plots for model interpretation
 
-## 💼 Business Applications
+## Business Applications
 
 ### For Risk Managers
 - Automated credit decisioning framework
@@ -141,68 +141,13 @@ credit_risk_scorecard/
 - Scenario analysis for strategic planning
 - ROI-driven recommendations
 
-## 📊 Key Results
+## Key Results
 
 The analysis produces:
 - **Model Performance**: ~0.85+ AUC on test set
 - **Risk Tiers**: Five-level classification (Low to High risk)
 - **Portfolio Metrics**: Expected loss, VaR, capital requirements
 - **Recommendations**: Risk-based approval and pricing strategies
-
-## 🔧 Customization
-
-### Modify Risk Parameters
-Edit `LGD assumptions` in the Quarto document:
-```r
-lgd_assumptions <- tibble(
-  risk_tier = c("Low Risk", "Medium-Low Risk", "Medium Risk", 
-                "Medium-High Risk", "High Risk"),
-  lgd_rate = c(0.30, 0.40, 0.50, 0.60, 0.70)  # Adjust these
-)
-```
-
-### Change Model Specifications
-Tune different hyperparameters:
-```r
-rf_spec <- rand_forest(
-  mtry = tune(),
-  trees = 1000,  # Increase trees
-  min_n = tune()
-)
-```
-
-### Add New Features
-Extend the data generation script with additional variables:
-```r
-credit_data <- tibble(
-  # ... existing features ...
-  new_feature = your_data_here
-)
-```
-
-## 📚 Learning Resources
-
-This project demonstrates concepts from:
-- **Statistical Learning**: Classification, regularization, ensemble methods
-- **Risk Management**: Credit risk modeling, Basel framework, stress testing
-- **Data Science**: Feature engineering, model validation, visualization
-
-Recommended reading:
-- "Applied Predictive Modeling" by Kuhn & Johnson
-- "Credit Risk Analytics" by Baesens et al.
-- Tidymodels documentation: https://www.tidymodels.org/
-
-## 📄 License
-
-This project is provided as-is for educational and portfolio purposes.
-
-## 👤 Author
-
-Created by Patrick Lefler to demonstrate risk analytics and data visualization capabilities for fintech applications.
-
-## 🔍 Keywords
-
-Credit Risk, Machine Learning, Tidymodels, Risk Scorecard, Portfolio Analytics, Monte Carlo Simulation, Data Visualization, Quarto, R Programming, Predictive Modeling, Financial Risk Management
 
 ---
 
