@@ -967,7 +967,7 @@ plot_7.4
 
 ## 8.1 Risk Management Strategy
 
-Based on the analysis, we recommend the following risk-based strategies:
+Based on the analysis, the following risk-based strategies would be recommended:
 
 ```{r recommendations}
 recommendations <- tribble(
@@ -1121,9 +1121,15 @@ This scorecard can be operationalized through:
 - mtry: `r best_rf$mtry`
 - min_n: `r best_rf$min_n`
 
-## Session Information
+
+::: {.appendix}
+
+### **Session Information**
+
+<div style="font-size: 0.8em;">
 
 ```{r session-info}
 #| echo: false
 sessionInfo()
 ```
+</div>
