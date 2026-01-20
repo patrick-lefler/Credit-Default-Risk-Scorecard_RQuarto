@@ -2,6 +2,8 @@
 
 A comprehensive predictive modeling project demonstrating advanced risk analytics and data visualization using R, Quarto, and tidymodels.
 
+Quarto visualization link: https://patrick-lefler.github.io/Credit-Default-Risk-Scorecard_RQuarto/
+
 ## Project Overview
 
 This project showcases:
